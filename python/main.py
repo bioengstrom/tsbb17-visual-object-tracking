@@ -19,6 +19,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 from models.cvlNet import cvlNet
+from models.goalNet import goalNet
 from train import train
 from test import test
 
@@ -61,8 +62,8 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 ####################################
 
 # Load and initialize the network architecture 
-model = cvlNet()
-
+#model = cvlNet()
+model = goalNet()
 
 if use_cuda:
     model.cuda()
