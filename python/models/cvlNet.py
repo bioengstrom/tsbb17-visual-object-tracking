@@ -47,7 +47,9 @@ class cvlNet(nn.Module):
 
         out = self.fc1(out) 
         out = F.relu(out) # relu2
-                
+        
+        # The -1 indicates that the number of rows should be calculated from the number of columns.
+        # Example: If out is a 64 values long vector out.view(-1, 32) would turn it into a [2, 32] matrix because ? * 32 = 64 => 64 / 32 = 2
         out = out.view(-1, 32)
         
         out = self.prediction(out)
