@@ -10,13 +10,13 @@ class goalNet(nn.Module):
        
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
-        self.conv3 = nn.Conv2d(32, 64, 5, padding=2)
+        self.conv3 = nn.Conv2d(32, 64, 5, padding=1)
         self.conv4 = nn.Conv2d(64, 64, 4, padding=2)
 
         # OLD
         #self.fc1 = nn.Conv2d(32, 32, 4) # Fully connected since expects a 4x4xc feature map
 
-        self.prediction = nn.Linear(32, 10)
+        self.prediction = nn.Linear(64, 10)
         self.loss = nn.LogSoftmax(1)
        
     def forward(self, x):
@@ -45,7 +45,7 @@ class goalNet(nn.Module):
         out = F.relu(out) # relu3
 
         # Orange 3
-        out = F.max_pool2d(out, kernel_size=(3, 3), stride=3)
+        out = F.max_pool2d(out, kernel_size=(2, 2), stride=2)
 
         # Green 4
         out = self.conv4(out)
@@ -54,7 +54,9 @@ class goalNet(nn.Module):
         out = F.relu(out) # relu4
 
         out = out.view(-1, 64)
+
         out = self.prediction(out)
         out = self.loss(out)
+
         
         return out
