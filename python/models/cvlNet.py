@@ -47,7 +47,9 @@ class cvlNet(nn.Module):
 
         out = self.fc1(out) 
         out = F.relu(out) # relu2
-                
+        
+        # The size -1 is inferred from other dimensions such that if out was a 64 value long vector it would create a [2, 32] matrix where -1 becomes the number of rows needed to represent 64 in segments of 32:
+        # ? * 32 = 64 => 64/32 = 2
         out = out.view(-1, 32)
         
         out = self.prediction(out)
