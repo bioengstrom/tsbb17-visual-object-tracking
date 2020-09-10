@@ -10,8 +10,8 @@ class goalNet(nn.Module):
        
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
-        self.conv3 = nn.Conv2d(32, 64, 5, padding=1)
-        self.conv4 = nn.Conv2d(64, 64, 4, padding=2)
+        self.conv3 = nn.Conv2d(32, 64, 5, padding=2)
+        self.conv4 = nn.Conv2d(64, 64, 4, padding=1)
 
         # OLD
         #self.fc1 = nn.Conv2d(32, 32, 4) # Fully connected since expects a 4x4xc feature map
@@ -21,10 +21,12 @@ class goalNet(nn.Module):
        
     def forward(self, x):
         # Green 1
+
         out = self.conv1(x)
 
         # Orange 1
-        out = F.max_pool2d(out, kernel_size=(4, 4), stride=4)
+        out = F.max_pool2d(out, kernel_size=(4, 4))
+
 
         # Red 1
         out = F.relu(out) # relu1
@@ -36,7 +38,7 @@ class goalNet(nn.Module):
         out = F.relu(out) # relu2
 
         # Orange 2
-        out = F.max_pool2d(out, kernel_size=(2, 2), stride=2)
+        out = F.max_pool2d(out, kernel_size=(2, 2))
 
         # Green 3
         out = self.conv3(out)
@@ -45,7 +47,7 @@ class goalNet(nn.Module):
         out = F.relu(out) # relu3
 
         # Orange 3
-        out = F.max_pool2d(out, kernel_size=(2, 2), stride=2)
+        out = F.max_pool2d(out, kernel_size=(2, 2))
 
         # Green 4
         out = self.conv4(out)
