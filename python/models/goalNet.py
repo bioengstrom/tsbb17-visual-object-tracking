@@ -11,7 +11,7 @@ class goalNet(nn.Module):
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
         self.conv3 = nn.Conv2d(32, 64, 5, padding=2)
-        self.conv4 = nn.Conv2d(64, 64, 4, padding=1)
+        self.conv4 = nn.Conv2d(64, 64, 4)
 
         # OLD
         #self.fc1 = nn.Conv2d(32, 32, 4) # Fully connected since expects a 4x4xc feature map
@@ -25,7 +25,7 @@ class goalNet(nn.Module):
         out = self.conv1(x)
 
         # Orange 1
-        out = F.max_pool2d(out, kernel_size=(4, 4))
+        out = F.max_pool2d(out, kernel_size=(2, 2))
 
 
         # Red 1
