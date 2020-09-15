@@ -20,6 +20,7 @@ import torchvision.transforms as transforms
 
 #from models.cvlNet import cvlNet
 from models.goalNet import goalNet
+from models.goalNetRGBHSV import goalNetRGBHSV
 from train import train
 from test import test
 
@@ -69,7 +70,8 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 
 # Load and initialize the network architecture
 #model = cvlNet()
-model = goalNet()
+#model = goalNet()
+model = goalNetRGBHSV()
 
 if use_cuda:
     model.cuda()

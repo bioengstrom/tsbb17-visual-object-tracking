@@ -2,7 +2,9 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import transforms
 import cv2
+import numpy as np
 
 class goalNetRGBHSV(nn.Module):
     def __init__(self):
@@ -23,10 +25,11 @@ class goalNetRGBHSV(nn.Module):
     def forward(self, x):
 
         xRGB = x
-        xHSV = cv2.cvtColor(x, cv2.COLOR_BGR2HSV)
+        print(x[0].size())
+        xHSV = x#transforms.ToTensor(transforms.ToPILImage()(x).convert("RGB")) #cv2.cvtColor(cv2.UMat(x), cv2.COLOR_BGR2HSV)
 
-        outRGB = self.model(self, xRGB)
-        outHSV = self.model(self, xHSV)
+        outRGB = self.model(xRGB)
+        outHSV = self.model(xHSV)
 
         out = outHSV + outRGB
         out = out.view(-1, 64)
