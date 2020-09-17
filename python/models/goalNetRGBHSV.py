@@ -13,7 +13,7 @@ class goalNetRGBHSV(nn.Module):
 
         super(goalNetRGBHSV, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
+        self.conv1 = nn.Conv2d(4, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
         self.conv3 = nn.Conv2d(32, 64, 5, padding=2)
         self.conv4 = nn.Conv2d(64, 64, 4)
@@ -26,27 +26,36 @@ class goalNetRGBHSV(nn.Module):
 
     def forward(self, x):
 
-        xRGB = x
-        xHSV = x.clone()
+        x_gray = x[:, 0:1, :, :].clone()
         for i in range(0, x.size()[0]):
-            y = x[i].cpu().detach().numpy()
+            x_gray[i] = x[i][0] * 0.3 + x[i][1] * 0.59 + x[i][2] * 0.11
+
+        x_exp = torch.cat((x, x_gray), 1)
+        #x_hsv = x.clone()
+        #for i in range(0, x.size()[0]):
+         #   img_tensor = x[i].cpu().detach()
+          #  for t, m, s in zip(img_tensor, (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)):
+           #     img_tensor.mul_(s).add_(m)
+            #y = img_tensor.numpy()
             #y = torchvision.transforms.ToPILImage()(x[i].cpu().detach())
             #y_hsv = y.convert(mode='HSV')
 
-            y = np.swapaxes(y, 0, 1)
-            y = np.swapaxes(y, 1, 2)
-            y_hsv = cv2.cvtColor(y, cv2.COLOR_RGB2HSV)
-            y_hsv = np.swapaxes(y_hsv, 1, 2)
-            y_hsv = np.swapaxes(y_hsv, 0, 1)
-            xHSV[i] = torch.from_numpy(y_hsv).to(xHSV)
-            #xHSV[i] = torchvision.transforms.ToTensor()(y)
+            #y = np.swapaxes(y, 0, 1)
+            #y = np.swapaxes(y, 1, 2)
+            #y_hsv = cv2.cvtColor(y, cv2.COLOR_RGB2HSV)
+            #y_hsv = np.swapaxes(y_hsv, 1, 2)
+            #y_hsv = np.swapaxes(y_hsv, 0, 1)
+            #x_hsv[i] = torch.from_numpy(y_hsv).to(x_hsv)
+            #x_hsv[i] = transforms.Compose([x_hsv_unnorm, transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
+            #x_hsv[i] = torchvision.transforms.ToTensor()(y)
 
 
-        #outRGB = self.model(xRGB)
-        outHSV = self.model(xHSV)
+        #outRGB = self.model(x_rgb)
+        #outHSV = self.model(x_hsv)
 
-        out = outHSV
+        #out = outHSV
 
+        out = self.model(x_exp)
         # Green 3
         out = self.conv3(out)
 
