@@ -8,7 +8,7 @@ class goalNet(nn.Module):
         
         super(goalNet, self).__init__()
        
-        img_size_factor = 1.0 
+        img_size_factor = 1 
 
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
