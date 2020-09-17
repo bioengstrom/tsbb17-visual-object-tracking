@@ -8,12 +8,13 @@ class goalNet(nn.Module):
         
         super(goalNet, self).__init__()
        
-        img_size_factor = 1 
+        # 4 if img_size = 32, 2 if img_size = 16, 1 if img_size = 8
+        scale_with_img_size = 4 
 
         self.conv1 = nn.Conv2d(3, 32, 5, padding=2)
         self.conv2 = nn.Conv2d(32, 32, 5, padding=2)
         self.conv3 = nn.Conv2d(32, 64, 5, padding=2)
-        self.conv4 = nn.Conv2d(64, 64, 4 * img_size_factor)
+        self.conv4 = nn.Conv2d(64, 64, scale_with_img_size)
 
         self.prediction = nn.Linear(64, 10)
         self.loss = nn.LogSoftmax(1)

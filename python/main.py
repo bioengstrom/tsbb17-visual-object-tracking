@@ -39,7 +39,7 @@ learning_rate = 0.001
 epochs = 50
 
 # Evaluating the image size:
-# Change the img_size (default = 32), also change the image_size_factor in goalNet.py
+# Change the img_size (default = 32), also change the scale_with_img_size in goalNet.py
 img_size = 32
 
 # Evaluating the weight initialisation:
@@ -48,7 +48,6 @@ img_size = 32
 ##################################
 ## Download the CIFAR10 dataset ##
 ##################################
-
 
 
 # Image transformations to apply to all images in the dataset (Data Augmentation)
