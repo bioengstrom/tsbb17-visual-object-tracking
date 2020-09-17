@@ -35,7 +35,7 @@ use_cuda = torch.cuda.is_available()
 
 # Evaluating Learning rate:
 # Change the learning rate and number of epochs
-learning_rate = learning_rate = 0.001 
+learning_rate = 0.001 
 epochs = 50
 
 # Evaluating the image size:
