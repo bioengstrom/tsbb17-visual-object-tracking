@@ -2,9 +2,11 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from torchvision import transforms
 import cv2
 import numpy as np
+from PIL import Image
 
 class goalNetRGBHSV(nn.Module):
     def __init__(self):
@@ -25,19 +27,48 @@ class goalNetRGBHSV(nn.Module):
     def forward(self, x):
 
         xRGB = x
-        print(x[0].size())
-        xHSV = x#transforms.ToTensor(transforms.ToPILImage()(x).convert("RGB")) #cv2.cvtColor(cv2.UMat(x), cv2.COLOR_BGR2HSV)
+        xHSV = x.clone()
+        for i in range(0, x.size()[0]):
+            y = x[i].cpu().detach().numpy()
+            #y = torchvision.transforms.ToPILImage()(x[i].cpu().detach())
+            #y_hsv = y.convert(mode='HSV')
 
-        outRGB = self.model(xRGB)
+            y = np.swapaxes(y, 0, 1)
+            y = np.swapaxes(y, 1, 2)
+            y_hsv = cv2.cvtColor(y, cv2.COLOR_RGB2HSV)
+            y_hsv = np.swapaxes(y_hsv, 1, 2)
+            y_hsv = np.swapaxes(y_hsv, 0, 1)
+            xHSV[i] = torch.from_numpy(y_hsv).to(xHSV)
+            #xHSV[i] = torchvision.transforms.ToTensor()(y)
+
+
+        #outRGB = self.model(xRGB)
         outHSV = self.model(xHSV)
 
-        out = outHSV + outRGB
-        out = out.view(-1, 64)
+        out = outHSV
 
+        # Green 3
+        out = self.conv3(out)
+
+        # Red 3
+        out = F.relu(out)  # relu3
+
+        out = F.max_pool2d(out, kernel_size=(2, 2))
+        out = self.conv4(out)
+
+        # Red 4
+        out = F.relu(out)  # relu4
+
+        #out = outHSV + outRGB
+        #out = torch.cat((outRGB, outHSV), 1)
+        #outRGB = outRGB.view(-1, 64)
+
+        out = out.view(-1, 64)
         out = self.prediction(out)
         out = self.loss(out)
 
         return out
+
 
     def model(self, x):
         # Green 1
@@ -60,19 +91,19 @@ class goalNetRGBHSV(nn.Module):
         out = F.max_pool2d(out, kernel_size=(2, 2))
 
         # Green 3
-        out = self.conv3(out)
+        #out = self.conv3(out)
 
         # Red 3
-        out = F.relu(out)  # relu3
+        #out = F.relu(out)  # relu3
 
         # Orange 3
-        out = F.max_pool2d(out, kernel_size=(2, 2))
+        #out = F.max_pool2d(out, kernel_size=(2, 2))
 
         # Green 4
-        out = self.conv4(out)
+        #out = self.conv4(out)
 
         # Red 4
-        out = F.relu(out)  # relu4
+        #out = F.relu(out)  # relu4
 
         return out
 
