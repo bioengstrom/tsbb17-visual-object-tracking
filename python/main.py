@@ -29,11 +29,27 @@ import time #Used to time the training (and test) phase(s) of the network
 use_cuda = torch.cuda.is_available()
 
 
+########################################
+## Learning param eval specifications ##
+########################################
+
+# Evaluating Learning rate:
+# Change the learning rate and number of epochs
+learning_rate = learning_rate = 0.001 
+epochs = 50
+
+# Evaluating the image size:
+# Change the img_size (default = 32), also change the image_size_factor in goalNet.py
+img_size = 32
+
+# Evaluating the weight initialisation:
+# In goalNet.py, pick between the initialisation methods and uncomment the "self.initialize_weights(init_method)" line
+ 
 ##################################
 ## Download the CIFAR10 dataset ##
 ##################################
 
-img_size = 32
+
 
 # Image transformations to apply to all images in the dataset (Data Augmentation)
 transform_train = transforms.Compose([
@@ -59,13 +75,9 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=128, shuffle=False,
 # Specify classes labels
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-
 ####################################
 ## Init the network and optimizer ##
 ####################################
-
-# Learning params
-learning_rate = 0.001 
 
 # Load and initialize the network architecture 
 #model = cvlNet()
@@ -88,7 +100,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 train_time_0 = time.time()
 
 start_epoch = 1
-num_epochs = 50
+num_epochs = epochs
 model, loss_log, acc_log = train(model, trainloader, optimizer, objective, use_cuda, start_epoch, num_epochs=num_epochs)
 
 train_time_1 = time.time()
