@@ -23,7 +23,7 @@ def test(model, testloader, use_cuda):
         total += targets.size(0)
         correct += (predicted == targets).sum().item()
 
-    print('Accuracy of the network on the 10000 test images: %d %%' % (
+    print('Accuracy of the network on the 10000 test images: {:.2f}'.format(
         100 * correct / total))
     
     return 100 * correct / total

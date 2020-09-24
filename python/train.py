@@ -60,7 +60,7 @@ def train(model, trainloader, optimizer, objective, use_cuda, start_epoch, num_e
             total += targets.size(0)
             correct += (predicted == targets).sum().item()
 
-            print('Loss: {:.8f} | Acc: {:.2f}% ({}/{})'.format((train_loss/(batch_idx+1)), 100.*correct/total, correct, total))
+            print('Loss: {:.8f} | Acc: {:.2f}% ({}/{})'.format((train_loss/(batch_idx+1)), 100.*correct/total, correct, total), end='\r')
 
         loss_log.append((train_loss/(batch_idx+1)))
         acc_log.append(100.*correct/total)
@@ -77,6 +77,6 @@ def train(model, trainloader, optimizer, objective, use_cuda, start_epoch, num_e
         torch.save(state, file_path)
 
     # Save the final model    
-    torch.save(model.state_dict(), './models/cvlnet_trained_cifar10_final')
+    torch.save(model.state_dict(), './models/cvlnet_trained_cifar10_final_spatdrop1')
     print('Training Finished!')
     return model, loss_log, acc_log
