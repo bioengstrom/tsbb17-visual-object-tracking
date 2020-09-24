@@ -7,7 +7,7 @@ import numpy as np
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
 
-dataset_path = "/home/gustav/data/otb_mini"
+dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_TRACKING = True
 SEQUENCE_IDX = 1
