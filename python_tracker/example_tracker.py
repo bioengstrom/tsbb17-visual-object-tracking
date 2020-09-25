@@ -6,6 +6,7 @@ import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
+from cvl.trackers import MOSSE
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker")
 
-    tracker = NCCTracker()
+    tracker = MOSSE()
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
@@ -38,8 +39,10 @@ if __name__ == "__main__":
 
             current_position = bbox
             tracker.start(image, bbox)
+        elif frame_idx == 1:
+            #tracker.detect(image)
+            tracker.updateFrame1(image)
         else:
-            tracker.detect(image)
             tracker.update(image)
 
         if SHOW_TRACKING:
