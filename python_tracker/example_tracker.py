@@ -6,12 +6,12 @@ import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
-from cvl.trackers import MOSSE
+from cvl.trackers import MOSSE_DCF
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 1
+SEQUENCE_IDX = 5
 
 if __name__ == "__main__":
 
@@ -22,12 +22,13 @@ if __name__ == "__main__":
     if SHOW_TRACKING:
         cv2.namedWindow("tracker")
 
-    tracker = MOSSE()
+    tracker = MOSSE_DCF()
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
-        image_color = frame['image']
-        image = np.sum(image_color, 2) / 3
+        image_color = frame['image'] #previous image = image_color
+        image = image_color
+        #image = np.sum(image_color, 2) / 3
 
         if frame_idx == 0:
             bbox = frame['bounding_box']
