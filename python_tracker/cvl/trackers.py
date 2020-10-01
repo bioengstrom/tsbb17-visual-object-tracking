@@ -184,9 +184,11 @@ class MOSSE_DCF:
         self.A = []
         self.B = 0
         self.M = []
+        self.dims = 1
 
         self.forgettingFactor = 0.625
         self.sigma = 4.0
+        self.regularization = 0.1
 
     #
     def crop_patch(self, image):
@@ -194,10 +196,12 @@ class MOSSE_DCF:
         return crop_patch(image, region)
 
     def start(self, image, region):
-        dims = image.shape[2]
+        if len(image.shape) > 2:
+            self.dims = image.shape[2]
         
-        self.M = [0 for _ in range(dims)]
-        self.A = [0 for _ in range(dims)]
+        
+        self.M = [0 for _ in range(self.dims)]
+        self.A = [0 for _ in range(self.dims)]
         
         self.region = region
         self.region_shape = (region.height, region.width)
@@ -210,7 +214,7 @@ class MOSSE_DCF:
         self.updateFirstFrame(image)
 
     def updateFirstFrame(self, image):
-        for dim in range(image.shape[2]):
+        for dim in range(self.dims):
             patchf = self.getFFTPatch(image, dim)
 
             self.A[dim] = patchf * np.conj(self.gaussianScore)
@@ -220,7 +224,7 @@ class MOSSE_DCF:
 
     def update(self, image):
         B = 0
-        for dim in range(image.shape[2]):
+        for dim in range(self.dims):
             patchf = self.getFFTPatch(image, dim)
 
             # Vi beräknar A
@@ -237,8 +241,8 @@ class MOSSE_DCF:
     def update_region(self, image):
 
         # Fourier sum, sum() did not properly deal with complex coordinates
-        for dim in range(image.shape[2]):
-            self.M[dim] = self.A[dim] / (0.1 + self.B)
+        for dim in range(self.dims):
+            self.M[dim] = self.A[dim] / (self.regularization + self.B)
 
         mArray = np.array(self.M)
         mSum = np.zeros(self.region_shape, dtype="complex_")
@@ -249,6 +253,9 @@ class MOSSE_DCF:
                     mSum[row][column] += mArray[dim][row][column]
         
         mSumSpatial = ifft2(mSum)
+
+        plt.imshow(abs(mSumSpatial))
+        plt.show()
 
         # Är lite osäker på denna biten tbh
         r, c = np.unravel_index(np.argmax(mSumSpatial), mSumSpatial.shape)
@@ -262,7 +269,11 @@ class MOSSE_DCF:
         return self.region
 
     def getFFTPatch(self, image, dim=0):
-        patch = self.crop_patch(image[:, :, dim])
+        if self.dims > 1:
+            patch = self.crop_patch(image[:, :, dim])
+        else:
+            patch = self.crop_patch(image)
+        
         patch = patch / 255
         patch = patch - np.mean(patch)
         patch = patch / np.std(patch)
