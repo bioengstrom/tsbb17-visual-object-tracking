@@ -1,8 +1,18 @@
 import numpy as np
+from scipy import signal
+from scipy.ndimage.interpolation import shift
+from scipy.ndimage import gaussian_filter
 from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from .image_io import crop_patch
 import cv2
+import matplotlib.pyplot as plt
 
+# kernel becomes kernelLength by kernelLength
+def guassianKernel(kernelHeight, kernelWidth, sigma=2.0):  
+    gaussianKernel1DH = signal.gaussian(kernelHeight, std=sigma).reshape(kernelHeight, 1)
+    gaussianKernel1DW = signal.gaussian(kernelWidth, std=sigma).reshape(kernelWidth, 1)
+    gaussianKernel2D = np.outer(gaussianKernel1DH, gaussianKernel1DW)
+    return gaussianKernel2D
 
 class NCCTracker:
 
@@ -93,10 +103,10 @@ class MOSSE:
         self.region_center = (region.height // 2, region.width // 2)
 
 
-        self.gaussianScore = np.zeros((region.height, region.width))
-        self.gaussianScore[region.height // 2, region.width // 2] = 1
-        self.gaussianScore = cv2.GaussianBlur(self.gaussianScore, (0, 0), 2.0) # 2.0 std in x and y led
-        self.gaussianScore = cv2.dft(self.gaussianScore, flags=cv2.DFT_COMPLEX_OUTPUT)
+        self.gaussianScore = guassianKernel(region.height, region.width)
+        #self.gaussianScore[region.height // 2, region.width // 2] = 1
+        #self.gaussianScore = cv2.GaussianBlur(self.gaussianScore, (0, 0), 2.0) # 2.0 std in x and y led
+        self.gaussianScore = fft2(self.gaussianScore)
 
 
     #copy paste from https://github.com/opencv/opencv/blob/master/samples/python/mosse.py
@@ -165,123 +175,97 @@ class MOSSE_DCF:
     #Y : Gaussian filter (C)
     #X : Input (P)
     #
-    def __init__(self, learning_rate=0.1):
-        self.template = None  # P in lecture 8, NCC
-        self.last_response = None
+    def __init__(self):
         self.region = None
         self.region_shape = None
         self.region_center = None
-        self.learning_rate = learning_rate
 
         self.gaussianScore = None
         self.A = []
         self.B = 0
         self.M = []
 
+        self.forgettingFactor = 0.625
+        self.sigma = 4.0
+
     #
     def crop_patch(self, image):
         region = self.region
         return crop_patch(image, region)
 
-    # Inits region
-    # Grön ruta i NCC
-    #
     def start(self, image, region):
         dims = image.shape[2]
-        self.A = [0 for _ in range(dims)]
+        
         self.M = [0 for _ in range(dims)]
+        self.A = [0 for _ in range(dims)]
+        
         self.region = region
         self.region_shape = (region.height, region.width)
         self.region_center = (region.height // 2, region.width // 2)
 
-        self.gaussianScore = np.zeros((region.height, region.width))
-        self.gaussianScore[region.height // 2, region.width // 2] = 1
-        self.gaussianScore = cv2.GaussianBlur(self.gaussianScore, (0, 0), 10.0)
-        self.gaussianScore = fft2(self.gaussianScore)#, flags=cv2.DFT_COMPLEX_OUTPUT)
+        self.gaussianScore = guassianKernel(region.height, region.width, self.sigma)
+        self.gaussianScore = fft2(self.gaussianScore)
 
-    # copy paste from https://github.com/opencv/opencv/blob/master/samples/python/mosse.py
-    def divSpec(self, A, B):
-        Ar, Ai = A[..., 0], A[..., 1]
-        Br, Bi = B[..., 0], B[..., 1]
-        C = (Ar + 1j * Ai) / (Br + 1j * Bi)
-        C = np.dstack([np.real(C), np.imag(C)]).copy()
-        return C
+        # Vi fixar första framen (frame 0), via start
+        self.updateFirstFrame(image)
 
-    def updateFrame1(self, image):
+    def updateFirstFrame(self, image):
         for dim in range(image.shape[2]):
-            patch = self.crop_patch(image[:, :, dim])
-            patch = patch / 255
-            patch = patch - np.mean(patch)
-            patch = patch / np.std(patch)
-            patchf = fft2(patch)#, flags=cv2.DFT_COMPLEX_OUTPUT)
-
-
-            #self.A[dim] = cv2.mulSpectrums(patchf, self.gaussianScore, 0, conjB=True)
-            #self.B += cv2.mulSpectrums(patchf, patchf, 0, conjB=True)
+            patchf = self.getFFTPatch(image, dim)
 
             self.A[dim] = patchf * np.conj(self.gaussianScore)
             self.B += patchf * np.conj(patchf)
+       
+        return self.update_region(image)
 
-        m = [0 for _ in range(image.shape[2])]
-        for dim in range(image.shape[2]):
-            self.M[dim] = self.A[dim]/(0.000000000000000000001 + self.B) #lambda correct??
-
-        m = ifft2(sum(self.M))#, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT) #sum before or after idft??
-
-        m_sum = sum(m)
-        r, c = np.unravel_index(np.argmax(m), m.shape)
-
-        r_offset = np.mod(r + self.region_center[0], self.region.height) - self.region_center[0]
-        c_offset = np.mod(c + self.region_center[1], self.region.width) - self.region_center[1]
-        #print("r offset: ({} + {} mod {}) - {} = {}".format(r, self.region_center[0], self.region.height,
-                                                            #self.region_center[0], r_offset))
-        #print("c offset: ({} + {} mod {}) - {} = {}".format(c, self.region_center[1], self.region.width,
-                                                            #self.region_center[1], c_offset))
-
-        self.region.xpos += c_offset
-        self.region.ypos += r_offset
-
-        return self.region
-
-    def update(self, image, ff=0.5 ):
+    def update(self, image):
         B = 0
         for dim in range(image.shape[2]):
-            patch = self.crop_patch(image[:, :, dim])
-            patch = patch / 255
-            patch = patch - np.mean(patch)
-            patch = patch / np.std(patch)
-            patchf = fft2(patch)#, flags=cv2.DFT_COMPLEX_OUTPUT)
+            patchf = self.getFFTPatch(image, dim)
 
-            #A = cv2.mulSpectrums(patchf, self.gaussianScore, 0, conjB=True)
-            #B += cv2.mulSpectrums(patchf, patchf, 0, conjB=True)
+            # Vi beräknar A
+            self.A[dim] = (self.forgettingFactor * patchf * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
 
-            A = patchf * np.conj(self.gaussianScore)
-            B += patchf * np.conj(patchf)
+            B += self.forgettingFactor * patchf * np.conj(patchf)
 
+        # Vi beräknar B
+        self.B = B + (1 - self.forgettingFactor) * self.B
 
-            self.A[dim] = ff * A + (1 - ff) * self.A[dim]
+        # Uppdaterar våran region
+        return self.update_region(image)
 
-        self.B = ff * B + (1 - ff) * self.B
+    def update_region(self, image):
 
-        m = [0 for _ in range(image.shape[2])]
-
+        # Fourier sum, sum() did not properly deal with complex coordinates
         for dim in range(image.shape[2]):
-            #self.M[dim] = self.divSpec(self.A[dim], 0.000000000000000000001 + self.B)
-            self.M[dim] = self.A[dim] / (0.000000000000000000001 + self.B)
+            self.M[dim] = self.A[dim] / (0.1 + self.B)
 
-        m = ifft2(sum(self.M))#, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT) #sum before or after idft??
+        mArray = np.array(self.M)
+        mSum = np.zeros(self.region_shape, dtype="complex_")
 
-        #m_sum = sum(m)
-        r, c = np.unravel_index(np.argmax(m), m.shape)
+        for row in range(mArray.shape[1]):
+            for column in range(mArray.shape[2]):
+                for dim in range(mArray.shape[0]):
+                    mSum[row][column] += mArray[dim][row][column]
+        
+        mSumSpatial = ifft2(mSum)
+
+        # Är lite osäker på denna biten tbh
+        r, c = np.unravel_index(np.argmax(mSumSpatial), mSumSpatial.shape)
 
         r_offset = np.mod(r + self.region_center[0], self.region.height) - self.region_center[0]
         c_offset = np.mod(c + self.region_center[1], self.region.width) - self.region_center[1]
-        #print("r offset: ({} + {} mod {}) - {} = {}".format(r, self.region_center[0], self.region.height,
-                                                            #self.region_center[0], r_offset))
-        #print("c offset: ({} + {} mod {}) - {} = {}".format(c, self.region_center[1], self.region.width,
-                                                            #self.region_center[1], c_offset))
 
         self.region.xpos += c_offset
         self.region.ypos += r_offset
 
         return self.region
+
+    def getFFTPatch(self, image, dim=0):
+        patch = self.crop_patch(image[:, :, dim])
+        patch = patch / 255
+        patch = patch - np.mean(patch)
+        patch = patch / np.std(patch)
+
+        return fft2(patch)
+
