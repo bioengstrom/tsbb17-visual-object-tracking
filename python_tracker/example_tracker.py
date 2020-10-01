@@ -27,8 +27,8 @@ if __name__ == "__main__":
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image_color = frame['image'] #previous image = image_color
-        image = image_color
-        #image = np.sum(image_color, 2) / 3
+        #image = image_color
+        image = np.sum(image_color, 2) / 3
 
         if frame_idx == 0:
             bbox = frame['bounding_box']

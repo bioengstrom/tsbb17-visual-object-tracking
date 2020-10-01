@@ -198,7 +198,9 @@ class MOSSE_DCF:
     def start(self, image, region):
         if len(image.shape) > 2:
             self.dims = image.shape[2]
-        
+
+        #plt.imshow(image, cmap="gray")
+        #plt.show()
         
         self.M = [0 for _ in range(self.dims)]
         self.A = [0 for _ in range(self.dims)]
@@ -254,7 +256,7 @@ class MOSSE_DCF:
         
         mSumSpatial = ifft2(mSum)
 
-        plt.imshow(abs(mSumSpatial))
+        plt.imshow(abs(mSumSpatial), cmap="gray")
         plt.show()
 
         # Är lite osäker på denna biten tbh
