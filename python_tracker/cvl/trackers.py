@@ -219,6 +219,11 @@ class MOSSE_DCF:
         for dim in range(self.dims):
             patchf = self.getFFTPatch(image, dim)
 
+            # Shows the inital filter for each dim
+            up = ifft2(patchf)
+            plt.imshow(abs(up), cmap="gray")
+            plt.show()
+
             self.A[dim] = patchf * np.conj(self.gaussianScore)
             self.B += patchf * np.conj(patchf)
        
@@ -228,6 +233,11 @@ class MOSSE_DCF:
         B = 0
         for dim in range(self.dims):
             patchf = self.getFFTPatch(image, dim)
+
+            # Shows the inital filter for each dim
+            up = ifft2(patchf)
+            plt.imshow(abs(up), cmap="gray")
+            plt.show()
 
             # Vi beräknar A
             self.A[dim] = (self.forgettingFactor * patchf * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
@@ -255,9 +265,6 @@ class MOSSE_DCF:
                     mSum[row][column] += mArray[dim][row][column]
         
         mSumSpatial = ifft2(mSum)
-
-        plt.imshow(abs(mSumSpatial), cmap="gray")
-        plt.show()
 
         # Är lite osäker på denna biten tbh
         r, c = np.unravel_index(np.argmax(mSumSpatial), mSumSpatial.shape)
