@@ -11,7 +11,7 @@ from cvl.trackers import MOSSE_DCF
 dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 3
+SEQUENCE_IDX = 1
 
 if __name__ == "__main__":
 
@@ -40,9 +40,6 @@ if __name__ == "__main__":
 
             current_position = bbox
             tracker.start(image, bbox)
-        #elif frame_idx == 1:
-            #tracker.detect(image)
-            #tracker.updateFrame1(image)
         else:
             tracker.update(image)
 

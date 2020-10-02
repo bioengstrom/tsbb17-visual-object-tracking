@@ -2,17 +2,17 @@ import numpy as np
 from scipy import signal
 from scipy.ndimage.interpolation import shift
 from scipy.ndimage import gaussian_filter
+from scipy.stats import multivariate_normal
 from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from .image_io import crop_patch
 import cv2
 import matplotlib.pyplot as plt
 
 # kernel becomes kernelLength by kernelLength
-def guassianKernel(kernelHeight, kernelWidth, sigma=2.0):  
-    gaussianKernel1DH = signal.gaussian(kernelHeight, std=sigma).reshape(kernelHeight, 1)
-    gaussianKernel1DW = signal.gaussian(kernelWidth, std=sigma).reshape(kernelWidth, 1)
-    gaussianKernel2D = np.outer(gaussianKernel1DH, gaussianKernel1DW)
-    return gaussianKernel2D
+def fftGuassianKernel(kernelHeight, kernelWidth, peakRow, peakColumn, sigma=2.0): 
+    x = np.zeros([kernelHeight, kernelWidth])
+    x[peakRow][peakColumn] = 1
+    return fft2(gaussian_filter(x, sigma=3.0))
 
 class NCCTracker:
 
@@ -172,9 +172,6 @@ class MOSSE:
         return self.region
 
 class MOSSE_DCF:
-    #Y : Gaussian filter (C)
-    #X : Input (P)
-    #
     def __init__(self):
         self.region = None
         self.region_shape = None
@@ -184,10 +181,11 @@ class MOSSE_DCF:
         self.A = []
         self.B = 0
         self.M = []
+        self.P = None
         self.dims = 1
 
-        self.forgettingFactor = 0.625
-        self.sigma = 4.0
+        self.forgettingFactor = 0.125
+        self.sigma = 2.0
         self.regularization = 0.1
 
     #
@@ -209,74 +207,68 @@ class MOSSE_DCF:
         self.region_shape = (region.height, region.width)
         self.region_center = (region.height // 2, region.width // 2)
 
-        self.gaussianScore = guassianKernel(region.height, region.width, self.sigma)
-        self.gaussianScore = fft2(self.gaussianScore)
+        self.gaussianScore = fftGuassianKernel(region.height, region.width, self.region_center[0], self.region_center[1], self.sigma)
 
         # Vi fixar första framen (frame 0), via start
         self.updateFirstFrame(image)
 
     def updateFirstFrame(self, image):
         for dim in range(self.dims):
-            patchf = self.getFFTPatch(image, dim)
+            self.P = self.getFFTPatch(image, dim)
 
-            # Shows the inital filter for each dim
-            up = ifft2(patchf)
-            plt.imshow(abs(up), cmap="gray")
-            plt.show()
-
-            self.A[dim] = patchf * np.conj(self.gaussianScore)
-            self.B += patchf * np.conj(patchf)
+            self.A[dim] = self.P * np.conj(self.gaussianScore)
+            self.B += self.P * np.conj(self.P)
        
-        return self.update_region(image)
-
-    def update(self, image):
-        B = 0
-        for dim in range(self.dims):
-            patchf = self.getFFTPatch(image, dim)
-
-            # Shows the inital filter for each dim
-            up = ifft2(patchf)
-            plt.imshow(abs(up), cmap="gray")
-            plt.show()
-
-            # Vi beräknar A
-            self.A[dim] = (self.forgettingFactor * patchf * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
-
-            B += self.forgettingFactor * patchf * np.conj(patchf)
-
-        # Vi beräknar B
-        self.B = B + (1 - self.forgettingFactor) * self.B
-
-        # Uppdaterar våran region
-        return self.update_region(image)
-
-    def update_region(self, image):
-
-        # Fourier sum, sum() did not properly deal with complex coordinates
         for dim in range(self.dims):
             self.M[dim] = self.A[dim] / (self.regularization + self.B)
 
-        mArray = np.array(self.M)
-        mSum = np.zeros(self.region_shape, dtype="complex_")
+        return self.region
 
-        for row in range(mArray.shape[1]):
-            for column in range(mArray.shape[2]):
-                for dim in range(mArray.shape[0]):
-                    mSum[row][column] += mArray[dim][row][column]
+    def detect(self, image):
+        for dim in range(self.dims):
+            self.P = self.getFFTPatch(image, dim)
+
+        # FFT reponse between patch and our learned filter
+        fftresponse = np.conj(self.M[0]) * self.P
+        response = (ifft2(fftresponse))
+
+        #plt.imshow(response.real)
+        #plt.show()
+
+        # Find maximum response
+        r, c = np.unravel_index(np.argmax(response), response.shape)
         
-        mSumSpatial = ifft2(mSum)
+        # Move kernel to new peak
+        self.gaussianScore = fftGuassianKernel(self.region.height, self.region.width, r, c, self.sigma)
+        r_offset = r - self.region_center[0]
+        c_offset = c - self.region_center[1]
 
-        # Är lite osäker på denna biten tbh
-        r, c = np.unravel_index(np.argmax(mSumSpatial), mSumSpatial.shape)
-
-        r_offset = np.mod(r + self.region_center[0], self.region.height) - self.region_center[0]
-        c_offset = np.mod(c + self.region_center[1], self.region.width) - self.region_center[1]
-
+        # Update pos
         self.region.xpos += c_offset
         self.region.ypos += r_offset
 
         return self.region
 
+    def update(self, image):
+        self.detect(image) # Detect before update
+
+        B = 0
+        for dim in range(self.dims):
+            # Vi beräknar A
+            self.A[dim] = (self.forgettingFactor * self.P * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
+           
+            B += self.forgettingFactor * (self.P * np.conj(self.P))
+
+        # Vi beräknar B
+        self.B = B + (1 - self.forgettingFactor) * self.B
+
+        # Vi beräknar M
+        for dim in range(self.dims):
+            self.M[dim] = self.A[dim] / (self.regularization + self.B)
+
+        return self.region
+
+    # Returnerar normaliserad FFT av input image (patch)
     def getFFTPatch(self, image, dim=0):
         if self.dims > 1:
             patch = self.crop_patch(image[:, :, dim])
@@ -288,4 +280,6 @@ class MOSSE_DCF:
         patch = patch / np.std(patch)
 
         return fft2(patch)
+
+    
 
