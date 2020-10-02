@@ -7,11 +7,14 @@ import numpy as np
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.trackers import NCCTracker
 from cvl.trackers import MOSSE_DCF
+from matplotlib import pyplot as plt
+import matplotlib.colors
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_TRACKING = True
-SEQUENCE_IDX = 1
+SEQUENCE_IDX = 3
+mode = "HSV"
 
 if __name__ == "__main__":
 
@@ -26,9 +29,29 @@ if __name__ == "__main__":
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
-        image_color = frame['image'] #previous image = image_color
-        #image = image_color
-        image = np.sum(image_color, 2) / 3
+        image_color = frame['image']
+        image_grayscale = np.sum(image_color, 2) / 3
+        image_hsv = matplotlib.colors.rgb_to_hsv(image_color/255)
+
+
+        if mode == "GRAY":
+            image = image_grayscale
+        elif mode == "COLOR":
+            image = image_color
+        elif mode == "GRADIENTS":
+            #laplacian = np.expand_dims(cv2.Laplacian(image_grayscale, cv2.CV_64F), 2)
+            sobelx = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, ksize=5), 2)
+            sobely = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, ksize=5), 2)
+            canny = cv2.Canny(np.uint8(image_grayscale), 100, 300)
+            #plt.imshow(canny, cmap="gray")
+            #plt.imshow(image_grayscale)
+            #plt.show()
+            image = np.concatenate((sobely, sobelx), axis=2)
+            #image = canny
+        elif mode == "HSV":
+            image = image_hsv
+
+
 
         if frame_idx == 0:
             bbox = frame['bounding_box']

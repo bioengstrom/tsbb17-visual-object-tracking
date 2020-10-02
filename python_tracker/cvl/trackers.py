@@ -97,6 +97,7 @@ class MOSSE_DCF:
 
     def start(self, image, region):
         if len(image.shape) > 2:
+            print("colorimage")
             self.dims = image.shape[2]
 
         #plt.imshow(image, cmap="gray")

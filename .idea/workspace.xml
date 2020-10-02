@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0e96832a-921f-4d5d-84de-6ffef22ab64e" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tsbb17-group4.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/tsbb17-group4.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python_tracker/cvl/trackers.py" beforeDir="false" afterPath="$PROJECT_DIR$/python_tracker/cvl/trackers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python_tracker/example_tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/python_tracker/example_tracker.py" afterDir="false" />
-    </list>
+    <list default="true" id="0e96832a-921f-4d5d-84de-6ffef22ab64e" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -74,6 +69,7 @@
       <option name="presentableId" value="Default" />
       <updated>1601464787159</updated>
       <workItem from="1601464788691" duration="5938000" />
+      <workItem from="1601471081619" duration="174000" />
     </task>
     <servers />
   </component>
