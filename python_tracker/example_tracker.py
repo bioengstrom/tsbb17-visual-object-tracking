@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from cvl.dataset import OnlineTrackingBenchmark
+from cvl.dataset import BoundingBox
 from cvl.trackers import NCCTracker
 from cvl.trackers import MOSSE_DCF
 from matplotlib import pyplot as plt
@@ -12,9 +13,10 @@ import matplotlib.colors
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
-SHOW_TRACKING = True
-SEQUENCE_IDX = 3
-mode = "HSV"
+SHOW_BOUNDING_BOX = True
+SHOW_SEARCH_REGION = True
+SEQUENCE_IDX = 6
+mode = "COLOR"
 
 if __name__ == "__main__":
 
@@ -22,23 +24,22 @@ if __name__ == "__main__":
 
     a_seq = dataset[SEQUENCE_IDX]
 
-    if SHOW_TRACKING:
-        cv2.namedWindow("tracker")
+    #if SHOW_BOUNDING_BOX:
+        #cv2.namedWindow("tracker")
 
     tracker = MOSSE_DCF()
 
     for frame_idx, frame in enumerate(a_seq):
         print(f"{frame_idx} / {len(a_seq)}")
         image_color = frame['image']
-        image_grayscale = np.sum(image_color, 2) / 3
-        image_hsv = matplotlib.colors.rgb_to_hsv(image_color/255)
-
 
         if mode == "GRAY":
+            image_grayscale = np.sum(image_color, 2) / 3
             image = image_grayscale
         elif mode == "COLOR":
             image = image_color
         elif mode == "GRADIENTS":
+            image_grayscale = np.sum(image_color, 2) / 3
             #laplacian = np.expand_dims(cv2.Laplacian(image_grayscale, cv2.CV_64F), 2)
             sobelx = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, ksize=5), 2)
             sobely = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, ksize=5), 2)
@@ -49,10 +50,10 @@ if __name__ == "__main__":
             image = np.concatenate((sobely, sobelx), axis=2)
             #image = canny
         elif mode == "HSV":
-            image = image_hsv
+            image = matplotlib.colors.rgb_to_hsv(image_color/255)
 
 
-
+        #searchRegion = None
         if frame_idx == 0:
             bbox = frame['bounding_box']
             if bbox.width % 2 == 0:
@@ -61,16 +62,57 @@ if __name__ == "__main__":
             if bbox.height % 2 == 0:
                 bbox.height += 1
 
-            current_position = bbox
-            tracker.start(image, bbox)
+
+            # Implementing search region
+            
+            # Changing the parameters individually will grow the search region in a specific direction
+            additionalPixelsX = 50 # Number of additional pixels per side in the x direction
+            additionalPixelsY = 30 # Number of additional pixels per side in the y direction
+            searchRegionPosX = bbox.xpos - additionalPixelsX
+            searchRegionPosY = bbox.ypos - additionalPixelsY
+            searchRegionWidth = bbox.width + 2*additionalPixelsX
+            searchRegionHeight = bbox.height + 2*additionalPixelsY
+
+            searchRegion = BoundingBox('tl-size', searchRegionPosX, searchRegionPosY, searchRegionWidth, searchRegionHeight)
+
+            tracker.start(image, bbox, searchRegion)
         else:
             tracker.update(image)
 
-        if SHOW_TRACKING:
-            bbox = tracker.region
+        if SHOW_BOUNDING_BOX and not SHOW_SEARCH_REGION:
+            bbox = tracker.boundingBox
             pt0 = (bbox.xpos, bbox.ypos)
             pt1 = (bbox.xpos + bbox.width, bbox.ypos + bbox.height)
             image_color = cv2.cvtColor(image_color, cv2.COLOR_RGB2BGR)
             cv2.rectangle(image_color, pt0, pt1, color=(0, 255, 0), thickness=3)
-            cv2.imshow("tracker", image_color)
+            cv2.imshow("Bounding box", image_color)
             cv2.waitKey(0)
+
+        if SHOW_SEARCH_REGION and not SHOW_BOUNDING_BOX:
+            search_region = tracker.searchRegion
+            pt0search = (searchRegion.xpos, searchRegion.ypos)
+            pt1search = (searchRegion.xpos + searchRegion.width, searchRegion.ypos + searchRegion.height)
+            image_color = cv2.cvtColor(image_color, cv2.COLOR_RGB2BGR)
+            cv2.rectangle(image_color, pt0search, pt1search, color=(0, 0, 255), thickness=3)
+            cv2.imshow("Search region", image_color)
+
+            cv2.waitKey(0)
+
+        if SHOW_SEARCH_REGION and SHOW_BOUNDING_BOX:
+            image_color = cv2.cvtColor(image_color, cv2.COLOR_RGB2BGR)
+
+            bbox = tracker.boundingBox
+            pt0 = (bbox.xpos, bbox.ypos)
+            pt1 = (bbox.xpos + bbox.width, bbox.ypos + bbox.height)
+            cv2.rectangle(image_color, pt0, pt1, color=(0, 255, 0), thickness=3)
+            
+            search_region = tracker.searchRegion
+            pt0search = (searchRegion.xpos, searchRegion.ypos)
+            pt1search = (searchRegion.xpos + searchRegion.width, searchRegion.ypos + searchRegion.height)
+            cv2.rectangle(image_color, pt0search, pt1search, color=(0, 0, 255), thickness=3)
+
+            cv2.imshow("Search region and bounding box", image_color)
+            cv2.waitKey(0)
+
+
+            
