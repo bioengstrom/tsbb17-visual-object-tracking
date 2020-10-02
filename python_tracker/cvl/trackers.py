@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 def fftGuassianKernel(kernelHeight, kernelWidth, peakRow, peakColumn, sigma=2.0): 
     x = np.zeros([kernelHeight, kernelWidth])
     x[peakRow][peakColumn] = 1
-    return fft2(gaussian_filter(x, sigma=3.0))
+    return fft2(gaussian_filter(x, sigma))
 
 class NCCTracker:
 
@@ -88,7 +88,7 @@ class MOSSE_DCF:
 
         self.forgettingFactor = 0.125
         self.sigma = 2.0
-        self.regularization = 0.1
+        self.regularization = 0.1 # lambda
 
     #
     def crop_patch(self, image):
@@ -124,15 +124,19 @@ class MOSSE_DCF:
         for dim in range(self.dims):
             self.M[dim] = self.A[dim] / (self.regularization + self.B)
 
-        return self.region
-
     def detect(self, image):
+        sum_M = 0
         for dim in range(self.dims):
             self.P = self.getFFTPatch(image, dim)
+            # FFT reponse between patch and our learned filter
+            fftresponse = np.conj(self.M[dim]) * self.P    
+            sum_M += fftresponse
 
-        # FFT reponse between patch and our learned filter
-        fftresponse = np.conj(self.M[0]) * self.P
-        response = (ifft2(fftresponse))
+
+        response = (ifft2(sum_M))
+
+        #fftresponse = np.conj(self.M[0]) * self.P
+        #response = (ifft2(fftresponse))
 
         #plt.imshow(response.real)
         #plt.show()
