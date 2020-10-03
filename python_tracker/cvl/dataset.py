@@ -301,9 +301,9 @@ class OnlineTrackingBenchmark:
         auc = np.cumsum(per_frame_iou)
         return auc
 
-    def calculate_performance(self, per_sequence_performance):
+    def calculate_performance(self, per_sequence_performance, seq_idxs):
         per_seq_auc = []
-        for sequence_idx in per_sequence_performance:
+        for sequence_idx in seq_idxs:
             seq_tracker_output = per_sequence_performance[sequence_idx]
             per_seq_auc.append(self.calculate_auc(sequence_idx, seq_tracker_output))
 

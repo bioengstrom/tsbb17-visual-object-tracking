@@ -7,6 +7,7 @@ from scipy.fftpack import fft2, ifft2, fftshift, ifftshift
 from .image_io import crop_patch
 import cv2
 import matplotlib.pyplot as plt
+import copy
 
 # kernel becomes kernelLength by kernelLength
 def fftGuassianKernel(kernelHeight, kernelWidth, peakRow, peakColumn, sigma=2.0): 
@@ -177,7 +178,7 @@ class MOSSE_DCF:
         for dim in range(self.dims):
             self.M[dim] = self.A[dim] / (self.regularization + self.B)
 
-        return self.boundingBox
+        return copy.deepcopy(self.boundingBox)
 
     # Returnerar normaliserad FFT av input image (patch)
     def getFFTPatch(self, image, dim=0):
