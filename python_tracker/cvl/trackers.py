@@ -103,7 +103,6 @@ class MOSSE_DCF:
 
     def start(self, image, boundingBox, searchRegion):
         if len(image.shape) > 2:
-            print("colorimage")
             self.dims = image.shape[2]
         
         self.M = [0 for _ in range(self.dims)]
