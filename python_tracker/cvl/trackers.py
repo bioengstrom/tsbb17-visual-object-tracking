@@ -357,13 +357,8 @@ class MOSSE_DEEP:
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-
-    #
     def crop_patch(self, image):
-        #searchRegion = self.searchRegion
         return crop_patch(image, self.searchRegion)
-
-    
 
     def start(self, image, boundingBox, searchRegion):
         self.M = [0 for _ in range(self.dims)]
@@ -388,7 +383,7 @@ class MOSSE_DEEP:
         patches = self.getPatchesDeep(image)
         for dim in range(self.dims):
             patch = patches[dim]
-            patch = self.normalize(patch)
+            #patch = self.normalize(patch)
             patch = hanning(patch)
             self.P[dim] = fft2(patch)
             self.A[dim] = self.P[dim] * np.conj(self.gaussianScore)
@@ -402,7 +397,7 @@ class MOSSE_DEEP:
         patches = self.getPatchesDeep(image)
         for dim in range(self.dims):
             patch = patches[dim]
-            patch = self.normalize(patch)
+            #patch = self.normalize(patch)
             patch = hanning(patch)
             self.P[dim] = fft2(patch)
             # FFT reponse between patch and our learned filter
@@ -416,8 +411,6 @@ class MOSSE_DEEP:
         
         # Move kernel to new peak
         self.gaussianScore = fftGuassianKernel(55, 55, r, c, self.sigma)
-        #plt.imshow(abs(ifft2(self.gaussianScore)))
-        #plt.show()
         r_offset = r - self.searchRegionCenter[0]
         c_offset = c - self.searchRegionCenter[1]
 
