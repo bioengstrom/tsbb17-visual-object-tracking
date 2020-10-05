@@ -118,6 +118,7 @@ class MOSSE_DCF:
         
         self.M = [0 for _ in range(self.dims)]
         self.A = [0 for _ in range(self.dims)]
+        self.P = [0 for _ in range(self.dims)]
         
         self.searchRegion = searchRegion
         self.boundingBox = boundingBox
@@ -137,10 +138,10 @@ class MOSSE_DCF:
 
     def updateFirstFrame(self, image):
         for dim in range(self.dims):
-            self.P = self.getFFTPatch(image, dim)
+            self.P[dim] = self.getFFTPatch(image, dim)
 
-            self.A[dim] = self.P * np.conj(self.gaussianScore)
-            self.B += self.P * np.conj(self.P)
+            self.A[dim] = self.P[dim] * np.conj(self.gaussianScore)
+            self.B += self.P[dim] * np.conj(self.P[dim])
        
         for dim in range(self.dims):
             self.M[dim] = self.A[dim] / (self.regularization + self.B)
@@ -148,9 +149,9 @@ class MOSSE_DCF:
     def detect(self, image):
         sum_M = 0
         for dim in range(self.dims):
-            self.P = self.getFFTPatch(image, dim)
+            self.P[dim] = self.getFFTPatch(image, dim)
             # FFT reponse between patch and our learned filter
-            fftresponse = np.conj(self.M[dim]) * self.P    
+            fftresponse = np.conj(self.M[dim]) * self.P[dim]    
             sum_M += fftresponse
 
 
@@ -181,9 +182,9 @@ class MOSSE_DCF:
         B = 0
         for dim in range(self.dims):
             # Vi beräknar A
-            self.A[dim] = (self.forgettingFactor * self.P * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
+            self.A[dim] = (self.forgettingFactor * self.P[dim] * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
            
-            B += self.forgettingFactor * (self.P * np.conj(self.P))
+            B += self.forgettingFactor * (self.P[dim] * np.conj(self.P[dim]))
 
         # Vi beräknar B
         self.B = B + (1 - self.forgettingFactor) * self.B
