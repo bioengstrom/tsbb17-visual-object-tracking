@@ -9,25 +9,17 @@ from cvl.dataset import BoundingBox
 from cvl.trackers import NCCTracker
 from cvl.trackers import MOSSE_DCF
 from cvl.trackers import MOSSE_DEEP
-from cvl.features import alexnetFeatures
 from matplotlib import pyplot as plt
 import matplotlib.colors
 
-import torch
-from PIL import Image
-from torchvision import transforms
-
 dataset_path = "/courses/TSBB17/otb_mini"
 
-SHOW_BOUNDING_BOX = False
+SHOW_BOUNDING_BOX = True
 SHOW_SEARCH_REGION = False
 SEQUENCE_IDXS = [7]
 mode = "COLOR"
 
 if __name__ == "__main__":
-    model = alexnetFeatures(pretrained=True)
-    #First conv and RELU
-    first_layer = model.features[0:2]
     dataset = OnlineTrackingBenchmark(dataset_path)
     
     # For evaluation
@@ -39,7 +31,7 @@ if __name__ == "__main__":
         for frame_idx, frame in enumerate(a_seq):
             print(f"{frame_idx} / {len(a_seq)}", end='\r')
             image = frame['image']
-
+            print(image.shape)
             if frame_idx == 0:
                 bbox = frame['bounding_box']
                 if bbox.width % 2 == 0:
