@@ -364,9 +364,10 @@ class MOSSE_DEEP:
 
     
 
-    def start(self, image, boundingBox, searchRegion): 
+    def start(self, image, boundingBox, searchRegion):
         self.M = [0 for _ in range(self.dims)]
         self.A = [0 for _ in range(self.dims)]
+        self.P = [0 for _ in range(self.dims)]
         
         self.searchRegion = searchRegion
         self.boundingBox = boundingBox
@@ -374,13 +375,11 @@ class MOSSE_DEEP:
         self.boundingBoxShape = (boundingBox.height, boundingBox.width)
         self.boundingBoxCenter = (boundingBox.height // 2, boundingBox.width // 2)
 
-        self.searchRegionShape = (searchRegion.height, searchRegion.width)
-        self.searchRegionCenter = (searchRegion.height // 2, searchRegion.width // 2)
+        self.searchRegionShape = (55, 55)
+        self.searchRegionCenter = (55 // 2, 55// 2)
 
-        self.gaussianScore = fftGuassianKernel(searchRegion.height, searchRegion.width, self.searchRegionCenter[0], self.searchRegionCenter[1], self.sigma)
-        #plt.imshow(abs(ifft2(self.gaussianScore)))
-        #plt.show()
-
+        self.gaussianScore = fftGuassianKernel(55, 55, self.searchRegionCenter[0], self.searchRegionCenter[1], self.sigma)
+        
         # Vi fixar första framen (frame 0), via start
         self.updateFirstFrame(image)
 
@@ -390,9 +389,9 @@ class MOSSE_DEEP:
             patch = patches[dim]
             patch = self.normalize(patch)
             patch = hanning(patch)
-            self.P = fft2(patch)
-            self.A[dim] = self.P * np.conj(self.gaussianScore)
-            self.B += self.P * np.conj(self.P)
+            self.P[dim] = fft2(patch)
+            self.A[dim] = self.P[dim] * np.conj(self.gaussianScore)
+            self.B += self.P[dim] * np.conj(self.P[dim])
        
         for dim in range(self.dims):
             self.M[dim] = self.A[dim] / (self.regularization + self.B)
@@ -404,19 +403,18 @@ class MOSSE_DEEP:
             patch = patches[dim]
             patch = self.normalize(patch)
             patch = hanning(patch)
-            self.P = fft2(patch)
+            self.P[dim] = fft2(patch)
             # FFT reponse between patch and our learned filter
-            fftresponse = np.conj(self.M[dim]) * self.P    
+            fftresponse = np.conj(self.M[dim]) * self.P[dim]
             sum_M += fftresponse
 
 
         response = (ifft2(sum_M))
-
         # Find maximum response
         r, c = np.unravel_index(np.argmax(response), response.shape)
         
         # Move kernel to new peak
-        self.gaussianScore = fftGuassianKernel(self.searchRegion.height, self.searchRegion.width, r, c, self.sigma)
+        self.gaussianScore = fftGuassianKernel(55, 55, r, c, self.sigma)
         #plt.imshow(abs(ifft2(self.gaussianScore)))
         #plt.show()
         r_offset = r - self.searchRegionCenter[0]
@@ -437,9 +435,9 @@ class MOSSE_DEEP:
         B = 0
         for dim in range(self.dims):
             # Vi beräknar A
-            self.A[dim] = (self.forgettingFactor * self.P * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
+            self.A[dim] = (self.forgettingFactor * self.P[dim] * np.conj(self.gaussianScore)) + (1 - self.forgettingFactor) * self.A[dim]
            
-            B += self.forgettingFactor * (self.P * np.conj(self.P))
+            B += self.forgettingFactor * (self.P[dim] * np.conj(self.P[dim]))
 
         # Vi beräknar B
         self.B = B + (1 - self.forgettingFactor) * self.B
@@ -467,7 +465,7 @@ class MOSSE_DEEP:
         input_tensor = self.preprocess(PIL_patch)
         input_batch = input_tensor.unsqueeze(0) # create a mini-batch as expected by the model
         res = self.first_layer(input_batch)
-        res = torch.nn.functional.interpolate(res, self.searchRegionShape) # resize images to searchRegion
+        #res = torch.nn.functional.interpolate(res, self.searchRegionShape) # resize images to searchRegion
         res = res.detach().numpy()
         res = res.squeeze() #remove first uneccesary dim
         #res = np.moveaxis(res, 0, -1) # (dims, w, h) => (w, h, dims)

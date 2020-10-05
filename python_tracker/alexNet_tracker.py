@@ -16,7 +16,7 @@ dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_BOUNDING_BOX = True
 SHOW_SEARCH_REGION = False
-SEQUENCE_IDXS = [7]
+SEQUENCE_IDXS = [1]
 mode = "COLOR"
 
 if __name__ == "__main__":
@@ -31,7 +31,6 @@ if __name__ == "__main__":
         for frame_idx, frame in enumerate(a_seq):
             print(f"{frame_idx} / {len(a_seq)}", end='\r')
             image = frame['image']
-            print(image.shape)
             if frame_idx == 0:
                 bbox = frame['bounding_box']
                 if bbox.width % 2 == 0:
