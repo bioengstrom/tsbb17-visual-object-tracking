@@ -8,50 +8,29 @@ from cvl.dataset import OnlineTrackingBenchmark
 from cvl.dataset import BoundingBox
 from cvl.trackers import NCCTracker
 from cvl.trackers import MOSSE_DCF
-from cvl.features import alexnetFeatures
+from cvl.trackers import MOSSE_DEEP
 from matplotlib import pyplot as plt
 import matplotlib.colors
-
-from PIL import Image
-from torchvision import transforms
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
 SHOW_BOUNDING_BOX = True
 SHOW_SEARCH_REGION = False
-SEQUENCE_IDXS = [1, 2]
+SEQUENCE_IDXS = [1]
 mode = "COLOR"
 
-# Preprocess image to fit alexnet input
-preprocess = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
-
 if __name__ == "__main__":
-    model = alexnetFeatures(pretrained=True)
-    #First conv and RELU
-    first_layer = model.features[0:2]
     dataset = OnlineTrackingBenchmark(dataset_path)
     
     # For evaluation
     per_seq_performance = [ [] for _ in range(len(dataset.sequences))]
 
     for seq_idx in SEQUENCE_IDXS:
-        tracker = MOSSE_DCF()
+        tracker = MOSSE_DEEP()
         a_seq = dataset[seq_idx]
         for frame_idx, frame in enumerate(a_seq):
             print(f"{frame_idx} / {len(a_seq)}", end='\r')
             image = frame['image']
-            PIL_image = Image.fromarray(image)
-
-            input_tensor = preprocess(PIL_image)
-            input_batch = input_tensor.unsqueeze(0) # create a mini-batch as expected by the model
-
-
-            #searchRegion = None
             if frame_idx == 0:
                 bbox = frame['bounding_box']
                 if bbox.width % 2 == 0:
@@ -115,6 +94,7 @@ if __name__ == "__main__":
 
     # Tracking complete, calculate performance
     per_seq_auc = dataset.calculate_performance(per_seq_performance, SEQUENCE_IDXS)
+    print(per_seq_auc)
 
 
 

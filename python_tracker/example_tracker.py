@@ -9,6 +9,7 @@ from cvl.dataset import BoundingBox
 from cvl.trackers import NCCTracker
 from cvl.trackers import MOSSE_SCALE
 from cvl.trackers import MOSSE_DCF
+from cvl.features import colornames_image
 from matplotlib import pyplot as plt
 import matplotlib.colors
 import copy
@@ -18,7 +19,7 @@ dataset_path = "/courses/TSBB17/otb_mini"
 SHOW_BOUNDING_BOX = False
 SHOW_SEARCH_REGION = False
 
-SEQUENCE_IDXS = [6]
+SEQUENCE_IDXS = [23]
 
 TRACKERS = [NCCTracker, MOSSE_DCF, MOSSE_SCALE]
 #TRACKERS = [MOSSE_DCF, MOSSE_SCALE]
@@ -60,14 +61,13 @@ if __name__ == "__main__":
                 
                 print(f"{frame_idx} / {len(a_seq)}", end='\r')
                 image_color = frame['image']
+                image_grayscale = np.sum(image_color, 2) / 3
 
                 if mode == "GRAY" or isinstance(tracker, NCCTracker):
-                    image_grayscale = np.sum(image_color, 2) / 3
                     image = image_grayscale
                 elif mode == "COLOR":
                     image = image_color
                 elif mode == "GRADIENTS":
-                    image_grayscale = np.sum(image_color, 2) / 3
                     #laplacian = np.expand_dims(cv2.Laplacian(image_grayscale, cv2.CV_64F), 2)
                     sobelx = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, ksize=5), 2)
                     sobely = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, ksize=5), 2)
@@ -79,6 +79,10 @@ if __name__ == "__main__":
                     #image = canny
                 elif mode == "HSV":
                     image = matplotlib.colors.rgb_to_hsv(image_color/255)
+
+                elif mode == "COLORNAMES":
+                    image_colornames = colornames_image(image_color, mode='probability')
+                    image = np.concatenate((np.expand_dims(image_grayscale, 2), image_colornames), axis=2)
 
 
                 #searchRegion = None

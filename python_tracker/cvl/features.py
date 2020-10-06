@@ -1,10 +1,51 @@
 import torch
 import torch.nn as nn
 
+import scipy.io
+import os
+
+import numpy as np
+
 if torch.__version__ == "1.2.0":
     from torchvision.models.utils import load_state_dict_from_url
 else:
     from torch.utils.model_zoo import load_url
+
+
+COLOR_NAMES = ['black', 'blue', 'brown', 'grey', 'green', 'orange',
+               'pink', 'purple', 'red', 'white', 'yellow']
+COLOR_RGB = [[0, 0, 0] , [0, 0, 1], [.5, .4, .25] , [.5, .5, .5] , [0, 1, 0] , [1, .8, 0] ,
+             [1, .5, 1] ,[1, 0, 1], [1, 0, 0], [1, 1, 1 ] , [ 1, 1, 0 ]]
+
+COLORNAMES_TABLE_PATH = os.path.join(os.path.dirname(__file__), 'colornames_w2c.mat')
+COLORNAMES_TABLE = scipy.io.loadmat(COLORNAMES_TABLE_PATH)['w2c']
+
+
+def colornames_image(image, mode='probability'):
+    """Apply color names to an image
+    Parameters
+    --------------
+    image : array_like
+        The input image array (RxC)
+    mode : str
+        If 'index' then it returns an image where each element is the corresponding color name label.
+        If 'probability', then the returned image has size RxCx11 where the last dimension are the probabilities for each
+        color label.
+        The corresponding human readable name of each label is found in the `COLOR_NAMES` list.
+    Returns
+    --------------
+    Color names encoded image, as explained by the `mode` parameter.
+    """
+    image = image.astype('double')
+    idx = np.floor(image[..., 0] / 8) + 32 * np.floor(image[..., 1] / 8) + 32 * 32 * np.floor(image[..., 2] / 8)
+    m = COLORNAMES_TABLE[idx.astype('int')]
+
+    if mode == 'index':
+        return np.argmax(m, 2)
+    elif mode == 'probability':
+        return m
+    else:
+        raise ValueError("No such mode: '{}'".format(mode))
 
 """
     These where taken from the torchvision repository, and modified to return the 
