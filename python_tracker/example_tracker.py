@@ -18,12 +18,12 @@ dataset_path = "/courses/TSBB17/otb_mini"
 SHOW_BOUNDING_BOX = True
 SHOW_SEARCH_REGION = False
 
-SEQUENCE_IDXS = [23]
+SEQUENCE_IDXS = [1]
 
-TRACKERS = [MOSSE_DCF, NCCTracker]
-Legends = ["MOSSE_DCF", "NCCTracker"] # Used for legends
+TRACKERS = [MOSSE_DCF, MOSSE_DCF, MOSSE_DCF, MOSSE_DCF, NCCTracker]
+Legends = ["MOSSE_DCF_GRAY", "MOSSE_DCF_COLOR", "MOSSE_DCF_COLORNAMES", "MOSSE_DCF_GRADIENTS", "MOSSE_DCF_HSV", "NCCTracker"] # Used for legends
 
-mode = "COLORNAMES"
+MODES = ["GRAY", "COLOR", "COLORNAMES", "GRADIENTS", "HSV"]
 
 if __name__ == "__main__":
 
@@ -50,6 +50,7 @@ if __name__ == "__main__":
         bboxStart = BoundingBox('tl-size', bboxStartX, bboxStartY, bboxStartW, bboxStartH)
 
         for seqTracker in range(len(TRACKERS)):
+            mode = MODES[seqTracker]
             tracker = TRACKERS[seqTracker]()
             a_seq = dataset[seq_idx]
             for frame_idx, frame in enumerate(a_seq):
@@ -57,6 +58,7 @@ if __name__ == "__main__":
                 print(f"{frame_idx} / {len(a_seq)}", end='\r')
                 image_color = frame['image']
                 image_grayscale = np.sum(image_color, 2) / 3
+                image_colornames = colornames_image(image_color, mode='probability')
 
                 if mode == "GRAY" or isinstance(tracker, NCCTracker):
                     image = image_grayscale
@@ -70,13 +72,12 @@ if __name__ == "__main__":
                     #plt.imshow(canny, cmap="gray")
                     #plt.imshow(image_grayscale)
                     #plt.show()
-                    image = np.concatenate((sobely, sobelx), axis=2)
+                    image = np.concatenate((image_colornames, sobely, sobelx), axis=2)
                     #image = canny
                 elif mode == "HSV":
                     image = matplotlib.colors.rgb_to_hsv(image_color/255)
 
                 elif mode == "COLORNAMES":
-                    image_colornames = colornames_image(image_color, mode='probability')
                     image = np.concatenate((np.expand_dims(image_grayscale, 2), image_colornames), axis=2)
 
 
@@ -146,24 +147,25 @@ if __name__ == "__main__":
                     cv2.imshow("Search region and bounding box", image_color)
                     cv2.waitKey(20)
 
-            # Tracking complete, calculate performance
-            per_tracker_performance[seqTracker] = dataset.calculate_performance(tracker_seq_performance[seqTracker], SEQUENCE_IDXS)
+    # Tracking complete, calculate performance
+    for seqTracker in range(len(TRACKERS)):
+        per_tracker_performance[seqTracker] = dataset.calculate_performance(tracker_seq_performance[seqTracker], SEQUENCE_IDXS)
 
-        #print(per_tracker_performance)
-        #print(per_tracker_performance[0])
-        print("\n")
-        for t in range(len(per_tracker_performance)):
-            for s in range(len(SEQUENCE_IDXS)):
-                plt.plot(per_tracker_performance[t][s], label=Legends[t])
-                plt.legend()
-        
-        plt.show()
-        #plt.plot(per_tracker_performance[0])
-        #for tracker in per_tracker_performance:
-            #print(tracker)
-            #plt.plot(tracker)
+    #print(per_tracker_performance)
+    #print(per_tracker_performance[0])
+    print("\n")
+    for t in range(len(per_tracker_performance)):
+        for s in range(len(SEQUENCE_IDXS)):
+            plt.plot(per_tracker_performance[t][s], label=Legends[t])
+            plt.legend()
 
-        #plt.show()
+    plt.show()
+    #plt.plot(per_tracker_performance[0])
+    #for tracker in per_tracker_performance:
+        #print(tracker)
+        #plt.plot(tracker)
+
+    #plt.show()
 
 
 
