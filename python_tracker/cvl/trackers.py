@@ -103,7 +103,7 @@ class MOSSE_DCF:
         self.P = None
         self.dims = 1
 
-        self.forgettingFactor = 0.2175
+        self.forgettingFactor = 0.125
         self.sigma = 2.0
         self.regularization = 0.1 # lambda
 
@@ -338,6 +338,11 @@ class MOSSE_DEEP:
         self.boundingBoxShape = None
         self.boundingBoxCenter = None
 
+        # Changed every conv test
+        self.convOutShape = 55
+        self.searchConvRatioY = 0
+        self.searchConvRatioX = 0
+
         self.gaussianScore = None
         self.A = []
         self.B = 0
@@ -345,7 +350,7 @@ class MOSSE_DEEP:
         self.P = None
         self.dims = 64
 
-        self.forgettingFactor = 0.2175
+        self.forgettingFactor = 0.125
         self.sigma = 2.0
         self.regularization = 0.1 # lambda
 
@@ -371,10 +376,13 @@ class MOSSE_DEEP:
         self.boundingBoxShape = (boundingBox.height, boundingBox.width)
         self.boundingBoxCenter = (boundingBox.height // 2, boundingBox.width // 2)
 
-        self.searchRegionShape = (55, 55)
-        self.searchRegionCenter = (55 // 2, 55// 2)
+        self.searchRegionShape = (searchRegion.height, searchRegion.width)
+        self.searchRegionCenter = (searchRegion.height // 2, searchRegion.width // 2)
 
-        self.gaussianScore = fftGuassianKernel(55, 55, self.searchRegionCenter[0], self.searchRegionCenter[1], self.sigma)
+        #### CONV FIX
+        self.gaussianScore = fftGuassianKernel(self.convOutShape, self.convOutShape, self.convOutShape//2, self.convOutShape//2, self.sigma)
+        self.searchConvRatioY = self.searchRegion.height / self.convOutShape
+        self.searchConvRatioX = self.searchRegion.width / self.convOutShape
         
         # Vi fixar första framen (frame 0), via start
         self.updateFirstFrame(image)
@@ -410,16 +418,25 @@ class MOSSE_DEEP:
         r, c = np.unravel_index(np.argmax(response), response.shape)
         
         # Move kernel to new peak
-        self.gaussianScore = fftGuassianKernel(55, 55, r, c, self.sigma)
-        r_offset = r - self.searchRegionCenter[0]
-        c_offset = c - self.searchRegionCenter[1]
+        self.gaussianScore = fftGuassianKernel(self.convOutShape, self.convOutShape, r, c, self.sigma)
+
+        #### CONV FIX
+        r_offset = r - self.convOutShape // 2
+        c_offset = c - self.convOutShape // 2
+
+        print("searchRegionShape", self.searchRegionShape)
+        print("r_offset", r_offset)
+        print("c_offset", c_offset)
+        print("gaussianScoreShape", self.gaussianScore.shape)
+        print("searchConvRatioX", self.searchConvRatioX)
+        print("searchConvRatioY", self.searchConvRatioY)
 
         # Update pos
-        self.boundingBox.xpos += c_offset
-        self.boundingBox.ypos += r_offset
+        self.boundingBox.xpos += int(c_offset*self.searchConvRatioX)
+        self.boundingBox.ypos += int(r_offset*self.searchConvRatioY)
 
-        self.searchRegion.xpos += c_offset
-        self.searchRegion.ypos += r_offset
+        self.searchRegion.xpos += int(c_offset*self.searchConvRatioX)
+        self.searchRegion.ypos += int(r_offset*self.searchConvRatioY)
 
         return self.boundingBox
 
