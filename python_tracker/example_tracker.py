@@ -7,6 +7,7 @@ import numpy as np
 from cvl.dataset import OnlineTrackingBenchmark
 from cvl.dataset import BoundingBox
 from cvl.trackers import NCCTracker
+from cvl.trackers import MOSSE_SCALE
 from cvl.trackers import MOSSE_DCF
 from cvl.features import colornames_image
 from matplotlib import pyplot as plt
@@ -15,15 +16,19 @@ import copy
 
 dataset_path = "/courses/TSBB17/otb_mini"
 
-SHOW_BOUNDING_BOX = True
+SHOW_BOUNDING_BOX = False
 SHOW_SEARCH_REGION = False
 
 SEQUENCE_IDXS = [23]
 
-TRACKERS = [MOSSE_DCF, NCCTracker]
-Legends = ["MOSSE_DCF", "NCCTracker"] # Used for legends
+TRACKERS = [NCCTracker, MOSSE_DCF, MOSSE_SCALE]
+#TRACKERS = [MOSSE_DCF, MOSSE_SCALE]
+Legends = ["NCC", "MOSSEMC", "MOSSEMC_SCALE"] # Used for legends
 
-mode = "COLORNAMES"
+#TRACKERS = [MOSSE_SCALE, MOSSE_DCF]
+#Legends = ["MOSSEMC_SCALE", "MOSSEMC"] # Used for legends
+
+mode = "GRAY"
 
 if __name__ == "__main__":
 
@@ -82,8 +87,10 @@ if __name__ == "__main__":
 
                 #searchRegion = None
                 #print(frame['bounding_box'])
+                region = 0
                 if frame_idx == 0:
                     bbox = copy.deepcopy(bboxStart)
+                    region = bbox
                     if bbox.width % 2 == 0:
                         bbox.width += 1
 
@@ -95,7 +102,7 @@ if __name__ == "__main__":
                     # Implementing search region
                     
                     # Changing the parameters individually will grow the search region in a specific direction
-                    if isinstance(tracker, MOSSE_DCF):
+                    if not isinstance(tracker, NCCTracker):
                         additionalPixelsX = 20 # Number of additional pixels per side in the x direction
                         additionalPixelsY = 20 # Number of additional pixels per side in the y direction
                         searchRegionPosX = bbox.xpos - additionalPixelsX
@@ -109,7 +116,8 @@ if __name__ == "__main__":
                     else:
                         tracker.start(image, bbox)
                 else:
-                    tracker_seq_performance[seqTracker][seq_idx].append(tracker.update(image))
+                    region = tracker.update(image)
+                    tracker_seq_performance[seqTracker][seq_idx].append(region)
 
                 if SHOW_BOUNDING_BOX and not SHOW_SEARCH_REGION:
                     bbox = tracker.boundingBox
@@ -118,7 +126,7 @@ if __name__ == "__main__":
                     image_color = cv2.cvtColor(image_color, cv2.COLOR_RGB2BGR)
                     cv2.rectangle(image_color, pt0, pt1, color=(0, 255, 0), thickness=3)
                     cv2.imshow("Bounding box", image_color)
-                    cv2.waitKey(20)
+                    cv2.waitKey(0)
 
                 elif SHOW_SEARCH_REGION and not SHOW_BOUNDING_BOX:
                     search_region = tracker.searchRegion
@@ -139,9 +147,14 @@ if __name__ == "__main__":
                     cv2.rectangle(image_color, pt0, pt1, color=(0, 255, 0), thickness=3)
                     
                     search_region = tracker.searchRegion
-                    pt0search = (searchRegion.xpos, searchRegion.ypos)
-                    pt1search = (searchRegion.xpos + searchRegion.width, searchRegion.ypos + searchRegion.height)
+                    pt0search = (search_region.xpos, search_region.ypos)
+                    pt1search = (search_region.xpos + search_region.width, search_region.ypos + search_region.height)
                     cv2.rectangle(image_color, pt0search, pt1search, color=(0, 0, 255), thickness=3)
+
+                    scaleRegion = region
+                    pts0search = (scaleRegion.xpos, scaleRegion.ypos)
+                    pts1search = (scaleRegion.xpos + scaleRegion.width, scaleRegion.ypos + scaleRegion.height)
+                    cv2.rectangle(image_color, pts0search, pts1search, color=(255, 0, 0), thickness=3)
 
                     cv2.imshow("Search region and bounding box", image_color)
                     cv2.waitKey(20)
