@@ -21,10 +21,9 @@ SHOW_SEARCH_REGION = False
 
 SEQUENCE_IDXS = range(30)
 
-TRACKERS = [MOSSE_DCF, MOSSE_DCF, MOSSE_DCF, MOSSE_DCF, MOSSE_DCF, NCCTracker]
-Legends = ["MOSSE_DCF_GRAY", "MOSSE_DCF_COLOR", "MOSSE_DCF_COLORNAMES", "MOSSE_DCF_GRADIENTS", "MOSSE_DCF_HSV", "NCCTracker"] # Used for legends
-
-MODES = ["GRAY", "COLOR", "COLORNAMES", "GRADIENTS", "HSV", "GRAY"]
+TRACKERS = [MOSSE_DCF, MOSSE_DCF]#, MOSSE_DCF]#, MOSSE_DCF, MOSSE_DCF, NCCTracker]
+Legends = ["MOSSE_DCF_GREY+COLORNAMES", "MOSSE_DCF_GREY+COLOR"]#, "MOSSE_DCF_HSV_GRAY"]#, "MOSSE_DCF_COLOR", "MOSSE_DCF_COLORNAMES", "MOSSE_DCF_GRADIENTS", "MOSSE_DCF_HSV", "NCCTracker"] # Used for legends
+MODES = ["COLORNAMES", "COLOR", "GRADIENTS", "HSV", "GRAY"]
 
 
 if __name__ == "__main__":
@@ -63,27 +62,33 @@ if __name__ == "__main__":
                 image_color = frame['image']
                 image_grayscale = np.sum(image_color, 2) / 3
                 image_colornames = colornames_image(image_color, mode='probability')
+                image_hsv = matplotlib.colors.rgb_to_hsv(image_color/255)
+                sobelx = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, ksize=5), 2)
+                sobely = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, ksize=5), 2)
+                image_gradients = np.concatenate((sobely, sobelx), axis=2)
 
                 if mode == "GRAY" or isinstance(tracker, NCCTracker):
                     image = image_grayscale
                 elif mode == "COLOR":
-                    image = image_color
+                    image = np.concatenate((image_color, np.expand_dims(image_grayscale, 2)), axis=2)
+                    #image = image_color
                 elif mode == "GRADIENTS":
                     #laplacian = np.expand_dims(cv2.Laplacian(image_grayscale, cv2.CV_64F), 2)
-                    sobelx = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, ksize=5), 2)
-                    sobely = np.expand_dims(cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, ksize=5), 2)
-                    canny = cv2.Canny(np.uint8(image_grayscale), 100, 300)
                     #plt.imshow(canny, cmap="gray")
                     #plt.imshow(image_grayscale)
                     #plt.show()
-                    image = np.concatenate((sobely, sobelx), axis=2)
+                    canny = cv2.Canny(np.uint8(image_grayscale), 100, 300)
                     #image = canny
+                    image = image_gradients
                 elif mode == "HSV":
-                    image = matplotlib.colors.rgb_to_hsv(image_color/255)
+                    image = np.concatenate((image_hsv, np.expand_dims(image_grayscale, 2)), axis=2)
 
                 elif mode == "COLORNAMES":
-                    image = image_colornames
+                    image = np.concatenate((image_colornames, np.expand_dims(image_grayscale, 2)), axis=2)
                     #image = np.concatenate((np.expand_dims(image_grayscale, 2), image_colornames), axis=2)
+
+                elif mode == "ALL":
+                    image = np.concatenate((image_color, np.expand_dims(image_grayscale, 2), image_colornames, image_hsv, image_gradients), axis=2)
 
 
                 #searchRegion = None
@@ -181,16 +186,16 @@ if __name__ == "__main__":
         for t in range(len(per_tracker_performance)):
             per_tracker_total_performance[t][s] += (per_tracker_performance[t][s][-1]/dataset.sequences[s].num_frames)
             #print(dataset.sequences[s].num_frames)
-            #plt.plot(per_tracker_performance[t][s], label=Legends[t])
+            plt.plot(per_tracker_performance[t][s], label=Legends[t])
             plt.legend()
         plt.xlabel("Frames")
         plt.ylabel("AUC")
         plt.title("Sequence %s" % s)
-        #plt.savefig("Sequence%s.png" % s)
-        #plt.show()
+        plt.savefig("Sequence%s_comb2.png" % s)
+        plt.show()
 
     per_tracker_mean_performance = np.mean(per_tracker_total_performance, 1)
-    np.save('per_tracker_mean_performance.npy', per_tracker_mean_performance)
+    np.save('per_tracker_mean_performance_all.npy', per_tracker_mean_performance)
     print(per_tracker_total_performance)
     print('DONE')
     #plt.plot(per_tracker_performance[0])

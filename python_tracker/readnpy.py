@@ -1,8 +1,5 @@
 import numpy as np
 
-a = np.load('./python_tracker/per_tracker_total_performance.npy')
-
-#a[0][:] /= 725
-
+a = np.load('per_tracker_mean_performance_all.npy')
 
 print("done")
