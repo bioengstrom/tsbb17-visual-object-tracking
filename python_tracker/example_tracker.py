@@ -179,16 +179,18 @@ if __name__ == "__main__":
     print("\n")
     for s in range(len(SEQUENCE_IDXS)):
         for t in range(len(per_tracker_performance)):
-            per_tracker_total_performance[t][s] += per_tracker_performance[t][s][-1]
-            plt.plot(per_tracker_performance[t][s], label=Legends[t])
+            per_tracker_total_performance[t][s] += (per_tracker_performance[t][s][-1]/dataset.sequences[s].num_frames)
+            #print(dataset.sequences[s].num_frames)
+            #plt.plot(per_tracker_performance[t][s], label=Legends[t])
             plt.legend()
         plt.xlabel("Frames")
         plt.ylabel("AUC")
         plt.title("Sequence %s" % s)
-        plt.savefig("Sequence%s.png" % s)
-        plt.show()
+        #plt.savefig("Sequence%s.png" % s)
+        #plt.show()
 
-    np.save('per_tracker_total_performance.npy', per_tracker_total_performance)
+    per_tracker_mean_performance = np.mean(per_tracker_total_performance, 1)
+    np.save('per_tracker_mean_performance.npy', per_tracker_mean_performance)
     print(per_tracker_total_performance)
     print('DONE')
     #plt.plot(per_tracker_performance[0])
